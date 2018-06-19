@@ -473,6 +473,42 @@ public class SimpaticoResourceESM {
 		}
 	}
 	
+	@GET
+	@Path("/words")
+	public Response getWordsInComments(@QueryParam("eserviceId") String eservice, @QueryParam("init") String init, @QueryParam("end") String end) {
+		if (eservice != null) {
+			BoolQueryBuilder query = new BoolQueryBuilder();
+			query.must(QueryBuilders.matchQuery("e-serviceID", eservice));
+			query.must(QueryBuilders.matchQuery("event", "session_feedback"));
+			query.must(QueryBuilders.rangeQuery("created").gte(init).lte(end));
+			query.must(QueryBuilders.matchQuery("texts.component", "global")); // To differentiate from previous session_feedback events. New structure
+			
+			try {
+				SearchResponse responseES = ElasticSearchConnector.getInstance().searchES(SimpaticoProperties.elasticSearchHIIndex, null, query, SimpaticoProperties.elasticSearchCreatedFieldName, SortOrder.ASC, 0);
+				// Get the texts string
+				String allComments = "";
+				ArrayList<?> list;
+				for (SearchHit hit: responseES.getHits().getHits()) {
+					list = (ArrayList<?>) hit.getSource().get("texts");
+					JSONArray texts = new JSONArray(list);
+					for (int i=0; i<texts.length(); i++) {
+						JSONObject text = texts.getJSONObject(i);
+						if (!text.getString("value").isEmpty()) {
+							String value = text.getString("value");
+							allComments += value + ". ";
+						}
+					}
+				}
+				return Response.status(SimpaticoResourceUtils.serverOkCode).entity(allComments).build();
+			} catch (Exception e) {
+				Logger.getRootLogger().error(e.getMessage());
+				return SimpaticoResourceUtils.createMessageResponse(SimpaticoResourceUtils.serverInternalServerErrorCode, SimpaticoResourceUtils.internalErrorResponse + ": " + SimpaticoResourceUtils.getInternalErrorMessageWithStackTrace(e, numLinesPrintStackInternalError));
+			}
+		} else {
+			return SimpaticoResourceUtils.createMessageResponse(SimpaticoResourceUtils.serverBadRequestCode, "eserviceId parameter is mandatory");
+		}
+	}
+	
 	private long getTotalSessions(String eservice, String init, String end) throws Exception {
 		BoolQueryBuilder query = new BoolQueryBuilder();
 		query.must(QueryBuilders.matchQuery("e-serviceID", eservice));
