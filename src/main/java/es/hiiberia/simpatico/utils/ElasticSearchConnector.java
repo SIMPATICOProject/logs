@@ -276,7 +276,7 @@ public class ElasticSearchConnector {
 		}			
 	}
 	
-	private SearchResponse searchES (String index, String type, QueryBuilder qb, String fieldSort, SortOrder ord, int limit) throws IOException {
+	public SearchResponse searchES (String index, String type, QueryBuilder qb, String fieldSort, SortOrder ord, int limit) throws IOException {
 		
 		try {
 			Logger.getRootLogger().info("Elastic search: Searching all data (index: " + index + ")");		

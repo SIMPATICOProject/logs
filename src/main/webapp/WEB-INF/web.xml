@@ -82,6 +82,10 @@
   	<url-pattern>/api/sf/config</url-pattern>
   </filter-mapping>
   <filter-mapping>
+  	<filter-name>NoAuthenticationFilter</filter-name>
+  	<url-pattern>/api/esm/*</url-pattern>
+  </filter-mapping>
+  <filter-mapping>
     <filter-name>AuthenticationFilter</filter-name>
     <url-pattern>/api/*</url-pattern>
   </filter-mapping>
