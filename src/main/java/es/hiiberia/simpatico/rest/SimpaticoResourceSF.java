@@ -358,15 +358,31 @@ public class SimpaticoResourceSF {
     @GET
     @Path("/config")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getConfig(@QueryParam("eserviceId") String eservice) {
+    public Response getConfig(@QueryParam("eserviceId") String eservice, @QueryParam("lang") String lang) {
     		if (eservice == null || eservice.isEmpty()) {
-    			return SimpaticoResourceUtils.createMessageResponse(SimpaticoResourceUtils.serverBadRequestCode, "Query parameter eserviceId is missing");
+    			return SimpaticoResourceUtils.createMessageResponse(SimpaticoResourceUtils.serverBadRequestCode, "Query parameter eserviceId is mandatory");
     		} else {
     			try {
 	    			ArrayList<String> words = new ArrayList<>();
 	    			words.add(eservice);
 	    			SearchResponse responseES = ElasticSearchConnector.getInstance().search(SimpaticoProperties.elasticSearchSFQuestionsIndex, ES_TYPE, "common.eserviceId", words, null, null, 20);
-	    			return SimpaticoResourceUtils.createMessageResponse(SimpaticoResourceUtils.searchResponse2JSONResponse(responseES));
+	    			JSONObject resJSON = SimpaticoResourceUtils.searchResponse2JSONResponse(responseES);
+	    			if (lang != null) {
+	    				JSONArray results = resJSON.getJSONArray("results");
+	    				JSONObject serviceConfig = new JSONObject();
+	    				// Get the config JSON for the correspondent lang (not possible to do it in the search)
+	    				for (int i=0; i<results.length(); i++) {
+	    					JSONObject data = results.getJSONObject(i).getJSONObject("data");
+	    					String serviceLang = data.getJSONObject("common").getString("lang");
+	    					if (serviceLang.equalsIgnoreCase(lang)) {
+	    						serviceConfig = results.getJSONObject(i);
+	    						break;
+	    					}
+	    				}
+	    				return SimpaticoResourceUtils.createMessageResponse(serviceConfig);
+	    			} else {
+	    				return SimpaticoResourceUtils.createMessageResponse(resJSON);
+	    			}
     			} catch (Exception e) {
     				SimpaticoResourceUtils.logException(e, FILE_LOG, THIS_RESOURCE);
     	    			return SimpaticoResourceUtils.createMessageResponse(SimpaticoResourceUtils.serverInternalServerErrorCode, SimpaticoResourceUtils.internalErrorResponse + ": " + SimpaticoResourceUtils.getInternalErrorMessageWithStackTrace(e, numLinesPrintStackInternalError));
